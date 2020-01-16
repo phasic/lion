@@ -5,26 +5,78 @@ import '@lion/radio/lion-radio.js';
 import '../lion-radio-group.js';
 
 describe('<lion-radio-group>', () => {
-  it('has a single checkedValue representing the currently checked radio value', async () => {
+  it('has a single modelValue representing the currently checked radio value', async () => {
     const el = await fixture(html`
-      <lion-radio-group>
-        <lion-radio name="gender[]" .choiceValue=${'male'}></lion-radio>
-        <lion-radio name="gender[]" .choiceValue=${'female'} checked></lion-radio>
-        <lion-radio name="gender[]" .choiceValue=${'alien'}></lion-radio>
+      <lion-radio-group name="gender">
+        <lion-radio .choiceValue=${'male'}></lion-radio>
+        <lion-radio .choiceValue=${'female'} checked></lion-radio>
+        <lion-radio .choiceValue=${'alien'}></lion-radio>
       </lion-radio-group>
     `);
     await nextFrame();
-    expect(el.checkedValue).to.equal('female');
+    expect(el.modelValue).to.equal('female');
     el.formElementsArray[0].checked = true;
-    expect(el.checkedValue).to.equal('male');
+    expect(el.modelValue).to.equal('male');
     el.formElementsArray[2].checked = true;
-    expect(el.checkedValue).to.equal('alien');
+    expect(el.modelValue).to.equal('alien');
   });
 
-  it('can set initial checkedValue on creation', async () => {
-    const checkedValue = 'alien';
+  it('will register child elements with the same name', async () => {
     const el = await fixture(html`
-      <lion-radio-group .checkedValue="${checkedValue}">
+      <lion-radio-group name="gender">
+        <lion-radio .choiceValue=${'male'}></lion-radio>
+        <lion-radio .choiceValue=${'female'} checked></lion-radio>
+        <lion-radio .choiceValue=${'alien'}></lion-radio>
+      </lion-radio-group>
+    `);
+    await nextFrame();
+    expect(el.formElementsArray[0].name).to.equal('gender');
+    expect(el.formElementsArray[1].name).to.equal('gender');
+    expect(el.formElementsArray[2].name).to.equal('gender');
+  });
+
+  it('throws if a child element without a modelValue like { value: "foo", checked: false } tries to register', async () => {
+    const el = await fixture(html`
+      <lion-radio-group name="gender">
+        <lion-radio .choiceValue=${'male'}></lion-radio>
+        <lion-radio .choiceValue=${'female'} checked></lion-radio>
+        <lion-radio .choiceValue=${'alien'}></lion-radio>
+      </lion-radio-group>
+    `);
+    await nextFrame();
+    const invalidChild = await fixture(html`
+      <lion-input name="first-name" .modelValue=${'Lara'}></lion-input>
+    `);
+
+    expect(() => {
+      el.appendChild(invalidChild);
+    }).to.throw(
+      'The lion-radio-group name="gender" does not allow to register lion-input with .modelValue="Lara" - The modelValue should represent a type radio with { value: "foo", checked: false }',
+    );
+  });
+
+  it('throws if a child element with a different name then the group tries to register', async () => {
+    const el = await fixture(html`
+      <lion-radio-group name="gender">
+        <lion-radio .choiceValue=${'female'} checked></lion-radio>
+        <lion-radio .choiceValue=${'alien'}></lion-radio>
+      </lion-radio-group>
+    `);
+    await nextFrame();
+    const invalidChild = await fixture(html`
+      <lion-radio name="foo" .choiceValue=${'male'}></lion-radio>
+    `);
+
+    expect(() => {
+      el.appendChild(invalidChild);
+    }).to.throw(
+      'The lion-radio-group name="gender" does not allow to register lion-input with custom names (name="foo" given)',
+    );
+  });
+
+  it('can set initial modelValue on creation', async () => {
+    const el = await fixture(html`
+      <lion-radio-group .modelValue=${'alien'}>
         <lion-radio name="gender[]" .choiceValue=${'male'}></lion-radio>
         <lion-radio name="gender[]" .choiceValue=${'female'}></lion-radio>
         <lion-radio name="gender[]" .choiceValue=${'alien'}></lion-radio>
@@ -35,7 +87,7 @@ describe('<lion-radio-group>', () => {
     await el.registrationReady;
     await el.updateComplete;
 
-    expect(el.checkedValue).to.equal('alien');
+    expect(el.modelValue).to.equal('alien');
     expect(el.formElementsArray[2].checked).to.be.true;
   });
 
@@ -50,9 +102,9 @@ describe('<lion-radio-group>', () => {
     `);
     await nextFrame();
 
-    expect(el.checkedValue).to.equal(date);
+    expect(el.modelValue).to.equal(date);
     el.formElementsArray[0].checked = true;
-    expect(el.checkedValue).to.deep.equal({ some: 'data' });
+    expect(el.modelValue).to.deep.equal({ some: 'data' });
   });
 
   it('can handle 0 and empty string as valid values ', async () => {
@@ -64,30 +116,12 @@ describe('<lion-radio-group>', () => {
     `);
     await nextFrame();
 
-    expect(el.checkedValue).to.equal(0);
+    expect(el.modelValue).to.equal(0);
     el.formElementsArray[1].checked = true;
-    expect(el.checkedValue).to.equal('');
+    expect(el.modelValue).to.equal('');
   });
 
-  it('still has a full modelValue ', async () => {
-    const el = await fixture(html`
-      <lion-radio-group>
-        <lion-radio name="gender[]" .choiceValue=${'male'}></lion-radio>
-        <lion-radio name="gender[]" .choiceValue=${'female'} checked></lion-radio>
-        <lion-radio name="gender[]" .choiceValue=${'alien'}></lion-radio>
-      </lion-radio-group>
-    `);
-    await nextFrame();
-    expect(el.modelValue).to.deep.equal({
-      'gender[]': [
-        { value: 'male', checked: false },
-        { value: 'female', checked: true },
-        { value: 'alien', checked: false },
-      ],
-    });
-  });
-
-  it('can check a radio by supplying an available checkedValue', async () => {
+  it('can check a radio by supplying an available modelValue', async () => {
     const el = await fixture(html`
       <lion-radio-group>
         <lion-radio name="gender[]" .modelValue="${{ value: 'male', checked: false }}"></lion-radio>
@@ -102,16 +136,16 @@ describe('<lion-radio-group>', () => {
       </lion-radio-group>
     `);
     await nextFrame();
-    expect(el.checkedValue).to.equal('female');
-    el.checkedValue = 'alien';
+    expect(el.modelValue).to.equal('female');
+    el.modelValue = 'alien';
     expect(el.formElementsArray[2].checked).to.be.true;
   });
 
-  it('fires checked-value-changed event only once per checked change', async () => {
+  it('fires model-value-changed event only once per checked change', async () => {
     let counter = 0;
     const el = await fixture(html`
       <lion-radio-group
-        @checked-value-changed=${() => {
+        @model-value-changed=${() => {
           counter += 1;
         }}
       >
@@ -134,10 +168,10 @@ describe('<lion-radio-group>', () => {
     expect(counter).to.equal(2);
 
     // not found values trigger no event
-    el.checkedValue = 'foo';
+    el.modelValue = 'foo';
     expect(counter).to.equal(2);
 
-    el.checkedValue = 'male';
+    el.modelValue = 'male';
     expect(counter).to.equal(3);
   });
 
@@ -168,10 +202,10 @@ describe('<lion-radio-group>', () => {
     expect(counter).to.equal(4); // alien becomes checked, male becomes unchecked
 
     // not found values trigger no event
-    el.checkedValue = 'foo';
+    el.modelValue = 'foo';
     expect(counter).to.equal(4);
 
-    el.checkedValue = 'male';
+    el.modelValue = 'male';
     expect(counter).to.equal(6); // male becomes checked, alien becomes unchecked
   });
 
