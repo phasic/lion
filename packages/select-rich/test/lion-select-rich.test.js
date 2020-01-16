@@ -1,22 +1,95 @@
-import {
-  expect,
-  fixture,
-  html,
-  aTimeout,
-  defineCE,
-  unsafeStatic,
-  nextFrame,
-} from '@open-wc/testing';
 import { LitElement } from '@lion/core';
 import '@lion/option/lion-option.js';
 import { OverlayController } from '@lion/overlays';
-
-import './keyboardEventShimIE.js';
+import {
+  aTimeout,
+  defineCE,
+  expect,
+  fixture,
+  html,
+  nextFrame,
+  unsafeStatic,
+} from '@open-wc/testing';
+import { LionSelectRich } from '../index.js';
 import '../lion-options.js';
 import '../lion-select-rich.js';
-import { LionSelectRich } from '../index.js';
+import './keyboardEventShimIE.js';
 
 describe('lion-select-rich', () => {
+  it('has a single modelValue representing the currently checked option', async () => {
+    const el = await fixture(html`
+      <lion-select-rich name="foo">
+        <lion-options slot="input">
+          <lion-option .choiceValue=${10} checked>Item 1</lion-option>
+          <lion-option .choiceValue=${20}>Item 2</lion-option>
+        </lion-options>
+      </lion-select-rich>
+    `);
+
+    expect(el.modelValue).to.equal(10);
+  });
+
+  it('throws if a child element without a modelValue like { value: "foo", checked: false } tries to register', async () => {
+    const el = await fixture(html`
+      <lion-select-rich name="foo">
+        <lion-options slot="input">
+          <lion-option .choiceValue=${10} checked>Item 1</lion-option>
+          <lion-option .choiceValue=${20}>Item 2</lion-option>
+        </lion-options>
+      </lion-select-rich>
+    `);
+    await nextFrame();
+
+    const invalidChild = await fixture(html`
+      <lion-option .modelValue=${'Lara'}></lion-option>
+    `);
+
+    expect(() => {
+      el._listboxNode.appendChild(invalidChild);
+    }).to.throw(
+      'The lion-select-rich name="foo" does not allow to register lion-option with .modelValue="Lara" - The modelValue should represent a type option with { value: "foo", checked: false }',
+    );
+  });
+
+  it('throws if a child element with a different name than the group tries to register', async () => {
+    const el = await fixture(html`
+      <lion-select-rich name="gender">
+        <lion-options slot="input">
+          <lion-option .choiceValue=${'female'} checked></lion-option>
+          <lion-option .choiceValue=${'other'}></lion-option>
+        </lion-options>
+      </lion-select-rich>
+    `);
+    await nextFrame();
+
+    const invalidChild = await fixture(html`
+      <lion-option name="foo" .choiceValue=${'male'}></lion-option>
+    `);
+
+    expect(() => {
+      el._listboxNode.appendChild(invalidChild);
+    }).to.throw(
+      'The lion-select-rich name="gender" does not allow to register lion-option with custom names (name="foo" given)',
+    );
+  });
+
+  it('can set initial modelValue on creation', async () => {
+    const el = await fixture(html`
+      <lion-select-rich name="gender" .modelValue=${'other'}>
+        <lion-options slot="input">
+          <lion-option .choiceValue=${'male'}></lion-option>
+          <lion-option .choiceValue=${'female'}></lion-option>
+          <lion-option .choiceValue=${'other'}></lion-option>
+        </lion-options>
+      </lion-select-rich>
+    `);
+
+    await nextFrame();
+
+    expect(el.modelValue).to.equal('other');
+    expect(el.formElementsArray[2].checked).to.be.true;
+  });
+
   it(`has a fieldName based on the label`, async () => {
     const el1 = await fixture(
       html`
@@ -77,8 +150,8 @@ describe('lion-select-rich', () => {
     const optOne = el.querySelectorAll('lion-option')[0];
     const optTwo = el.querySelectorAll('lion-option')[1];
 
-    expect(optOne.name).to.equal('foo[]');
-    expect(optTwo.name).to.equal('foo[]');
+    expect(optOne.name).to.equal('foo');
+    expect(optTwo.name).to.equal('foo');
   });
 
   describe('Invoker', () => {
@@ -449,7 +522,7 @@ describe('lion-select-rich', () => {
           </lion-options>
         </lion-select-rich>
       `);
-      expect(el.checkedValue).to.deep.equal({
+      expect(el.modelValue).to.deep.equal({
         type: 'mastercard',
         label: 'Master Card',
         amount: 12000,
@@ -457,7 +530,7 @@ describe('lion-select-rich', () => {
       });
 
       el.checkedIndex = 1;
-      expect(el.checkedValue).to.deep.equal({
+      expect(el.modelValue).to.deep.equal({
         type: 'visacard',
         label: 'Visa Card',
         amount: 0,
@@ -527,12 +600,12 @@ describe('lion-select-rich', () => {
       const selectRich = el.shadowRoot.querySelector('lion-select-rich');
       const invoker = selectRich._invokerNode;
 
-      // needed to properly set the checkedIndex and checkedValue
+      // needed to properly set the checkedIndex and modelValue
       selectRich.requestUpdate();
       await selectRich.updateComplete;
 
       expect(selectRich.checkedIndex).to.equal(1);
-      expect(selectRich.checkedValue).to.equal('hotpink');
+      expect(selectRich.modelValue).to.equal('hotpink');
       expect(invoker.selectedElement.value).to.equal('hotpink');
 
       colorList.splice(1, 0, {
@@ -545,7 +618,7 @@ describe('lion-select-rich', () => {
       await el.updateComplete;
 
       expect(selectRich.checkedIndex).to.equal(2);
-      expect(selectRich.checkedValue).to.equal('hotpink');
+      expect(selectRich.modelValue).to.equal('hotpink');
       expect(invoker.selectedElement.value).to.equal('hotpink');
     });
   });
