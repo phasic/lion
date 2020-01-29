@@ -37,11 +37,20 @@ describe('<lion-checkbox-group>', () => {
     const invalidChild = await fixture(html`
       <lion-checkbox name="first-name" .modelValue=${'Lara'}></lion-checkbox>
     `);
+    const anotherInvalidChild = await fixture(html`
+      <input name="first-name" .modelValue=${'Lara'}></input>
+    `);
 
     expect(() => {
       el.appendChild(invalidChild);
     }).to.throw(
-      'The lion-checkbox-group name="gender[]" does not allow to register lion-checkbox with .modelValue="Lara" - The modelValue should represent a type checkbox with { value: "foo", checked: false }',
+      'The lion-checkbox-group name="gender[]" does not allow to register element with .modelValue="Lara" - The modelValue should represent a type checkbox with { value: "foo", checked: false }',
+    );
+
+    expect(() => {
+      el.appendChild(anotherInvalidChild);
+    }).to.throw(
+      'The lion-checkbox-group name="gender[]" does not allow to register element with .modelValue="Lara" - The modelValue should represent a type checkbox with { value: "foo", checked: false }',
     );
   });
 
@@ -80,7 +89,7 @@ describe('<lion-checkbox-group>', () => {
     expect(() => {
       el.appendChild(invalidChild);
     }).to.throw(
-      'The lion-checkbox-group name="gender[]" does not allow to register lion-checkbox with custom names (name="foo" given)',
+      'The lion-checkbox-group name="gender[]" does not allow to register element with custom names (name="foo" given)',
     );
   });
 

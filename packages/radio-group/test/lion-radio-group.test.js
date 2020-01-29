@@ -164,7 +164,7 @@ describe('<lion-radio-group>', () => {
       >
         <lion-radio name="gender[]" .choiceValue=${'male'}></lion-radio>
         <lion-radio name="gender[]" .modelValue=${{ value: 'female', checked: true }}></lion-radio>
-        <lion-radio name="gender[]" .choiceValue=${'alien'}></lion-radio>
+        <lion-radio name="gender[]" .choiceValue=${'other'}></lion-radio>
       </lion-radio-group>
     `);
     await nextFrame();
@@ -178,14 +178,14 @@ describe('<lion-radio-group>', () => {
     expect(counter).to.equal(2);
 
     el.formElementsArray[2].checked = true;
-    expect(counter).to.equal(4); // alien becomes checked, male becomes unchecked
+    expect(counter).to.equal(4); // other becomes checked, male becomes unchecked
 
     // not found values trigger no event
     el.modelValue = 'foo';
     expect(counter).to.equal(4);
 
     el.modelValue = 'male';
-    expect(counter).to.equal(6); // male becomes checked, alien becomes unchecked
+    expect(counter).to.equal(6); // male becomes checked, other becomes unchecked
   });
 
   it('allows selection of only one radio in a named group', async () => {
